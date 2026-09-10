@@ -110,11 +110,20 @@
     ]
   };
 
+  /* 카드 이미지: 라이더-웨이트-스미스(1909) 스캔본, cards/ 폴더에 저장.
+   * 파일명 규칙 — 메이저: major-00.jpg ~ major-21.jpg
+   *              마이너: <수트키>-01.jpg ~ <수트키>-14.jpg (펜타클은 pents) */
+  var IMG_SUIT = { wands:"wands", cups:"cups", swords:"swords", pentacles:"pents" };
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+
   /* ---- 78장 덱 생성 ---- */
   function buildDeck() {
     var cards = [];
-    MAJORS.forEach(function (m) {
-      cards.push({ kind:"major", suit:"major", num:m[0], name:m[1], en:m[2], glyph:m[3], up:m[4], rev:m[5] });
+    MAJORS.forEach(function (m, i) {
+      cards.push({
+        kind:"major", suit:"major", num:m[0], name:m[1], en:m[2], glyph:m[3],
+        up:m[4], rev:m[5], img:"cards/major-" + pad2(i) + ".jpg"
+      });
     });
     Object.keys(SUITS).forEach(function (s) {
       var info = SUITS[s];
@@ -123,7 +132,8 @@
           kind:"minor", suit:s, num:RANKS_NUM[i],
           name:info.ko + " " + RANKS_KO[i],
           en:RANKS_EN[i] + " of " + info.en,
-          glyph:info.g, up:pair[0], rev:pair[1]
+          glyph:info.g, up:pair[0], rev:pair[1],
+          img:"cards/" + IMG_SUIT[s] + "-" + pad2(i + 1) + ".jpg"
         });
       });
     });

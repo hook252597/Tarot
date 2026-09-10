@@ -40,17 +40,15 @@
   /* ---- 카드 조각 렌더 ---- */
   function cardFaceHTML(pick) {
     var c = pick.card;
-    var cls = c.kind === "major" ? "suit-major" : "suit-" + c.suit;
-    return '<div class="tcard ' + cls + (pick.orient === "reversed" ? " reversed" : "") + '">' +
-      '<div class="tcard-inner">' +
-        '<span class="tcard-corner tl">' + esc(c.num) + '</span>' +
-        '<span class="tcard-glyph">' + c.glyph + '</span>' +
-        '<span class="tcard-name">' + esc(c.name) + '</span>' +
-        '<span class="tcard-en">' + esc(c.en) + '</span>' +
-        '<span class="tcard-corner br">' + esc(c.num) + '</span>' +
-      '</div></div>';
+    return '<div class="tcard' + (pick.orient === "reversed" ? " reversed" : "") + '">' +
+      '<img class="tcard-photo" src="' + c.img + '" alt="' + esc(c.name) + '" draggable="false">' +
+      '</div>';
   }
   function backHTML() { return '<div class="cardback"><span>✦</span></div>'; }
+
+  function preloadImages(picks) {
+    picks.forEach(function (p) { var im = new Image(); im.src = p.card.img; });
+  }
 
   /* ============ 1. 스프레드 선택 ============ */
   function renderSpreads() {
@@ -147,7 +145,7 @@
       b.style.setProperty("--r", rot.toFixed(2) + "deg");
       b.style.setProperty("--ty", ty.toFixed(1) + "px");
       b.setAttribute("aria-label", "카드 선택");
-      b.innerHTML = '<div class="tcard suit-major">' + backHTML() + '</div>';
+      b.innerHTML = '<div class="tcard">' + backHTML() + '</div>';
       if (!reduceMotion) {
         b.style.animation = "pop .4s ease backwards";
         b.style.animationDelay = (i * 9) + "ms";
@@ -250,6 +248,7 @@
   function goReading() {
     revealTimers.forEach(clearTimeout);
     revealTimers = [];
+    preloadImages(state.picks);
     $("readTag").textContent = state.spread.tag;
     $("readName").textContent = state.spread.name + " 해석";
     $("readTopic").textContent = state.topic ? ("“" + state.topic + "”") : "";
