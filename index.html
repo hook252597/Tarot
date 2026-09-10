@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>달빛 아르카나</title>
+<meta name="description" content="스프레드를 고르고 고민을 적은 뒤, 카드를 직접 뽑아 한 장씩 해석과 총평을 받아보는 타로 리딩 사이트.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="moon" aria-hidden="true"></span>달빛 아르카나</div>
+    <button class="home-link" id="homeBtn" hidden>처음으로</button>
+  </header>
+
+  <!-- 1. 스프레드 선택 -->
+  <section class="screen active" id="screen-spread">
+    <div class="intro">
+      <h1>오늘의 타로</h1>
+      <p class="lede">마음속 질문을 하나 떠올리세요. 먼저 카드를 펼칠 방식을 고릅니다.</p>
+    </div>
+    <div class="spreads" id="spreadGrid"></div>
+  </section>
+
+  <!-- 2. 주제 입력 -->
+  <section class="screen" id="screen-topic">
+    <div class="topic-wrap panel">
+      <div class="eyebrow" id="topicTag"></div>
+      <h2 id="topicName"></h2>
+      <p class="lede" id="topicDesc"></p>
+      <ul class="pos-preview" id="topicPositions"></ul>
+      <label class="field-label" for="topicInput">지금의 상황 · 고민거리</label>
+      <textarea id="topicInput" placeholder="예) 지금 다니는 회사를 그만두고 새 일을 시작해도 될지 고민입니다. / 그 사람과의 관계가 앞으로 어떻게 흘러갈지 궁금해요."></textarea>
+      <div class="btn-row">
+        <button class="btn" id="startBtn">카드 펼치기</button>
+        <button class="btn ghost" id="backToSpread">다른 방식 고르기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 카드 고르기 -->
+  <section class="screen" id="screen-pick">
+    <div class="pick-head">
+      <div>
+        <div class="eyebrow" id="pickTag"></div>
+        <h2 id="pickName" style="font-size:24px"></h2>
+      </div>
+      <div class="progress" id="pickProgress"></div>
+    </div>
+    <div class="slots" id="slotRow"></div>
+
+    <div id="shuffleBox">
+      <div class="shuffle-stage" id="shuffleStage" aria-hidden="true">
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+        <div class="s-card"><div class="cardback"><span>✦</span></div></div>
+      </div>
+      <p class="shuffle-note" id="shuffleNote">카드를 섞는 중…</p>
+    </div>
+
+    <div id="fanBox" hidden>
+      <div class="fan-scroll"><div class="fan" id="fan"></div></div>
+      <p class="fan-hint" id="fanHint">카드를 좌우로 넘겨 보고, 마음이 가는 카드를 고르세요.</p>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn" id="revealBtn" disabled>해석 보기</button>
+        <button class="btn ghost" id="reshuffleBtn">다시 섞기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 해석 -->
+  <section class="screen" id="screen-reading">
+    <div class="reading-head">
+      <div class="eyebrow" id="readTag"></div>
+      <h2 id="readName"></h2>
+      <div class="reading-topic" id="readTopic"></div>
+      <div class="skip-row"><button class="btn ghost" id="skipBtn">전체 해석 바로 보기</button></div>
+    </div>
+    <div id="readingList"></div>
+    <div class="summary" id="summaryBox">
+      <div class="eyebrow">총평</div>
+      <h2>카드가 전하는 전체 흐름</h2>
+      <div id="summaryText"></div>
+    </div>
+    <div class="reading-actions">
+      <button class="btn" id="againBtn">새로운 질문으로 다시 보기</button>
+    </div>
+  </section>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
