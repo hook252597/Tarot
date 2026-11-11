@@ -1,0 +1,132 @@
+[
+  {
+    "id": "today",
+    "enabled": true,
+    "featured": true,
+    "menuName": "오늘의 운세",
+    "menuNameEn": "Daily Fortune",
+    "menuDesc": "하루의 전반적인 흐름과 과제, 그리고 결과를 들여다보는 대표 메뉴입니다.",
+    "promptName": "오늘의 하루 엿보기",
+    "cardCount": 3,
+    "layout": "row",
+    "promptTemplateId": "common-v1",
+    "hasSupportCards": false,
+    "adviceOnRequestOnly": false,
+    "positions": [
+      { "id": "situation", "nameKo": "상황", "promptMeaning": "오늘 나의 전반적인 상황" },
+      { "id": "task", "nameKo": "과제", "promptMeaning": "오늘 내가 집중해야 할 과제 또는 도전" },
+      { "id": "outcome", "nameKo": "결과", "promptMeaning": "오늘의 과제와 상황이 가져올 결과" }
+    ],
+    "inputExample": "예) 오늘 팀 프로젝트 발표가 있는데 준비가 덜 된 것 같아 불안합니다. 오늘 무엇에 집중해야 할지 궁금해요."
+  },
+  {
+    "id": "one",
+    "enabled": true,
+    "menuName": "원 카드",
+    "menuNameEn": "One Card",
+    "menuDesc": "카드 한 장으로 핵심을 짚는 가장 간결한 방식. 오늘의 조언이나 짧은 질문에 어울립니다.",
+    "promptName": "원 카드",
+    "cardCount": 1,
+    "layout": "row",
+    "promptTemplateId": "common-v1",
+    "hasSupportCards": false,
+    "adviceOnRequestOnly": true,
+    "positions": [
+      { "id": "core", "nameKo": "핵심 메시지", "promptMeaning": "지금 이 질문의 한가운데 있는 흐름" }
+    ],
+    "inputExample": "예) 이번 주 금요일 면접을 앞두고 있습니다. 지금 제가 가장 신경 써야 할 것이 무엇인지 궁금해요."
+  },
+  {
+    "id": "three",
+    "enabled": true,
+    "menuName": "쓰리 카드",
+    "menuNameEn": "Three Cards",
+    "menuDesc": "과거–현재–미래의 흐름을 한눈에 읽는, 가장 널리 쓰이는 스프레드입니다.",
+    "promptName": "쓰리 카드",
+    "cardCount": 3,
+    "layout": "row",
+    "promptTemplateId": "common-v1",
+    "hasSupportCards": false,
+    "adviceOnRequestOnly": true,
+    "positions": [
+      { "id": "past", "nameKo": "과거", "promptMeaning": "지금 상황의 뿌리가 된 지난 흐름" },
+      { "id": "present", "nameKo": "현재", "promptMeaning": "바로 지금 작용하고 있는 힘" },
+      { "id": "future", "nameKo": "미래", "promptMeaning": "이 흐름이 향하는 가까운 결과" }
+    ],
+    "inputExample": "예) 반년 전에 시작한 공부가 요즘 손에 잡히지 않습니다. 왜 이렇게 됐는지, 앞으로 어떻게 흘러갈지 궁금해요."
+  },
+  {
+    "id": "relationship",
+    "enabled": true,
+    "menuName": "관계 스프레드",
+    "menuNameEn": "Relationship",
+    "menuDesc": "두 사람 사이의 감정과 흐름을 살피는 방식. 연애·우정·가족 관계에 두루 쓰입니다.",
+    "promptName": "관계 스프레드",
+    "cardCount": 7,
+    "layout": "relationship7",
+    "promptTemplateId": "common-v1",
+    "hasSupportCards": false,
+    "adviceOnRequestOnly": false,
+    "positions": [
+      { "id": "me", "nameKo": "나", "promptMeaning": "이 관계에서 나의 감정·생각·태도, 내가 상대를 보는 방식" },
+      { "id": "partner", "nameKo": "상대", "promptMeaning": "상대가 이 관계에서 겉으로 드러내는 태도와 관점" },
+      { "id": "relation", "nameKo": "두 사람의 관계", "promptMeaning": "두 사람 사이의 핵심 분위기와 에너지" },
+      { "id": "myWish", "nameKo": "내가 원하는 것", "promptMeaning": "이 관계에서 내가 바라는 것(지속, 안정, 표현, 변화, 거리 등)" },
+      { "id": "partnerWish", "nameKo": "상대가 원하는 것", "promptMeaning": "상대가 이 관계에서 중요하게 여기는 것" },
+      { "id": "task", "nameKo": "관계의 과제", "promptMeaning": "두 사람이 이해하거나 풀어야 할 부분" },
+      { "id": "flow", "nameKo": "관계의 가능성과 흐름", "promptMeaning": "지금의 흐름이 이어질 때 관계가 향하는 방향" }
+    ],
+    "readingGuide": [
+      "1번과 2번 카드를 비교해 나와 상대가 관계를 대하는 태도의 차이를 읽어라.",
+      "1번·2번 카드가 만나 3번 카드의 관계 분위기를 어떻게 만드는지 읽어라.",
+      "4번과 5번 카드를 비교해 서로 원하는 방향이 같은지 다른지 읽어라.",
+      "3번 → 6번 → 7번 카드를 이어 지금의 관계와 과제가 어디로 향하는지 읽어라.",
+      "2번 카드는 상대의 속마음을 단정하지 말고 겉으로 드러나는 태도와 관점으로 읽어라.",
+      "6번 카드가 어려운 카드여도 관계의 끝이 아니라 풀어야 할 과제로 읽어라.",
+      "7번 카드는 확정된 결말이 아니라 지금의 흐름이 이어질 때의 방향으로 읽어라."
+    ],
+    "groups": [
+      { "label": "① ↔ ②", "desc": "나와 상대의 태도 비교" },
+      { "label": "④ ↔ ⑤", "desc": "서로 원하는 방향 비교" },
+      { "label": "③ → ⑥ → ⑦", "desc": "관계·과제·흐름" }
+    ],
+    "inputExample": "예) 사귄 지 1년 된 사람과 요즘 연락이 줄었습니다. 서로 바라는 게 달라진 건지, 무엇을 풀어야 할지 궁금해요."
+  },
+  {
+    "id": "celtic",
+    "enabled": true,
+    "menuName": "켈틱 크로스",
+    "menuNameEn": "Celtic Cross",
+    "menuDesc": "가장 전통적이고 깊이 있는 10장 스프레드. 상황을 여러 각도에서 입체적으로 살핍니다.",
+    "promptName": "켈틱 크로스",
+    "cardCount": 10,
+    "layout": "celtic10",
+    "promptTemplateId": "common-v1",
+    "hasSupportCards": false,
+    "adviceOnRequestOnly": true,
+    "positions": [
+      { "id": "present", "nameKo": "현재 상황", "promptMeaning": "내가 지금 구체적으로 놓여 있는 상황" },
+      { "id": "obstacle", "nameKo": "장애물", "promptMeaning": "현재 상황을 직접 가로막는 요인. 가까운 미래와 결과에도 영향을 줄 수 있음" },
+      { "id": "recentPast", "nameKo": "가까운 과거", "promptMeaning": "최근의 상황, 지금에 이르게 된 이유와 배경" },
+      { "id": "nearFuture", "nameKo": "가까운 미래", "promptMeaning": "머지않아 일어날 상황" },
+      { "id": "hopedFuture", "nameKo": "내가 바라는 미래", "promptMeaning": "내가 머릿속으로 그리는 미래, 나의 의지" },
+      { "id": "inner", "nameKo": "나의 내면", "promptMeaning": "속마음에 있는 희망과 불안. 스스로도 모르는 무의식일 수 있음" },
+      { "id": "myView", "nameKo": "나의 시선", "promptMeaning": "이 상황을 바라보는 나의 주관적인 관점" },
+      { "id": "outerView", "nameKo": "외부의 시선", "promptMeaning": "주변 사람이나 제3자가 보는 객관적인 시선" },
+      { "id": "fear", "nameKo": "두려움", "promptMeaning": "내가 두려워하는 상황" },
+      { "id": "outcome", "nameKo": "최종 결과", "promptMeaning": "이 흐름이 도달하는 결말" }
+    ],
+    "readingGuide": [
+      "3번 → 1번 → 4번 → 10번 카드는 이야기의 뼈대다. 가장 먼저 이 흐름을 읽고, 나머지 카드는 여기에 덧붙여라.",
+      "6번 → 1번 → 5번 카드로 나의 내면이 현재와 바라는 미래에 어떤 영향을 주는지 읽어라. 6번은 나도 모르는 무의식일 수 있다.",
+      "6번과 9번 카드는 묶어서 읽고, 두 해석이 서로 모순되지 않게 하라.",
+      "카드를 끊어 읽지 말고 하나의 이야기로 이어라."
+    ],
+    "groups": [
+      { "label": "③ → ① → ④ → ⑩", "desc": "이야기의 뼈대" },
+      { "label": "⑥ → ① → ⑤", "desc": "내면이 미치는 영향" },
+      { "label": "⑥ + ⑨", "desc": "내면과 두려움" }
+    ],
+    "inputExample": "예) 3년 다닌 회사를 그만두고 디자인 일을 새로 시작하려 합니다. 준비는 6개월 했고, 지금 옮겨도 될지와 무엇이 걸림돌인지 궁금해요."
+  }
+]

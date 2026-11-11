@@ -18,4 +18,4 @@
 | 소드 | `swords-01.jpg` ~ `swords-14.jpg` | 에이스 … 킹 |
 | 펜타클 | `pents-01.jpg` ~ `pents-14.jpg` | 에이스 … 킹 |
 
-`js/data.js` 의 `buildDeck()` 이 이 규칙으로 각 카드에 `img` 경로를 부여합니다.
+`data/cards.json` 의 `image` 값이 이 파일명을 가리키고, 폴더 위치는 `js/engine/index.js` 의 `DECK_PATH` 로 정합니다. 뽑힌 방향이 역방향이면 화면에서 그림을 180° 돌려 보여줍니다.

@@ -2,7 +2,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 문서 버전 | v0.13 (2026-11-10) — 역할별 결정 권한 정리, AI 바로가기 링크(ChatGPT·Gemini) 확정 |
+| 문서 버전 | v1.0 (2026-11-11) — 설계대로 사이트 구현 완료(메뉴 5종, 프롬프트 복사). 구현 상태는 README 참고 |
 | 저장소 | https://github.com/hook252597/Tarot |
 | 개발 인원 | 2명 — **A(박정열)**: 시스템·파이프라인 설계(카드 데이터, 프롬프트) / **B(동업자)**: 화면 설계, 카드 디자인, 글꼴, 사이트 이름 |
 | 배포 | GitHub Pages (PC·모바일 반응형 웹) |
@@ -572,4 +572,4 @@ flowchart LR
 | [관계 스프레드 해석법 — 네이버 블로그](https://blog.naver.com/hd-books/223544891107) | — | 미반영 — 페이지를 읽을 수 없었음(위 자료로 대체) |
 | [웹 게임 개발 — hiteksoftware](https://hiteksoftware.co.kr/blog-ko/web-game-development/) | — | 미반영 — 페이지가 열리지 않음 |
 
-- 카드 이미지 출처: `cards/CREDITS.md`
+- 카드 이미지 출처: `assets/decks/rws/CREDITS.md`

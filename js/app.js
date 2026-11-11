@@ -1,344 +1,264 @@
-/* 달빛 아르카나 — 화면 흐름 및 리딩 로직
- * data.js(window.TAROT) 가 먼저 로드되어 있어야 한다.
+/* 달빛 아르카나 — 화면 흐름
+ * 홈(S1) → 상황 입력(S2) → 카드 선택(S3) → 결과·프롬프트 복사(S4)
+ *
+ * 카드 데이터와 프롬프트는 TarotEngine(js/engine/index.js)에서만 가져온다.
+ * 진행 상태는 이 파일의 state 변수(메모리)에만 있고, 쿠키·저장소를 쓰지 않는다.
  */
 (function () {
   "use strict";
 
-  var T = window.TAROT;
-  var SUITS = T.SUITS;
-  var SPREADS = T.SPREADS;
-  var SPREAD_ORDER = T.SPREAD_ORDER;
+  var E = window.TarotEngine;
+  var app = document.getElementById("app");
+  var homeBtn = document.getElementById("homeBtn");
+  var AI_LINKS = [
+    { name: "ChatGPT", url: "https://chatgpt.com" },
+    { name: "Gemini", url: "https://gemini.google.com" }
+  ];
 
-  /* ============ 상태 ============ */
-  var state = { key: null, spread: null, topic: "", deck: [], picks: [] };
-  var revealTimers = [];
-  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var state = { screen: "home", spread: null, text: "", deck: [], picks: [], taken: [] };
 
-  var $ = function (id) { return document.getElementById(id); };
-
-  function shuffle(a) {
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = a[i]; a[i] = a[j]; a[j] = t;
-    }
-    return a;
-  }
+  /* ============ 도구 ============ */
   function esc(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  function orientLabel(o) { return o === "reversed" ? "역방향" : "정방향"; }
+  function num(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 
-  function showScreen(name) {
-    ["spread", "topic", "pick", "reading"].forEach(function (n) {
-      $("screen-" + n).classList.toggle("active", n === name);
-    });
-    $("homeBtn").hidden = (name === "spread");
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-  }
-
-  /* ---- 카드 조각 렌더 ---- */
-  function cardFaceHTML(pick) {
-    var c = pick.card;
-    return '<div class="tcard' + (pick.orient === "reversed" ? " reversed" : "") + '">' +
-      '<img class="tcard-photo" src="' + c.img + '" alt="' + esc(c.name) + '" draggable="false">' +
-      '</div>';
-  }
-  function backHTML() { return '<div class="cardback"><span>✦</span></div>'; }
-
-  function preloadImages(picks) {
-    picks.forEach(function (p) { var im = new Image(); im.src = p.card.img; });
-  }
-
-  /* ============ 1. 스프레드 선택 ============ */
-  function renderSpreads() {
-    var grid = $("spreadGrid");
-    grid.innerHTML = "";
-    SPREAD_ORDER.forEach(function (key) {
-      var s = SPREADS[key];
-      var b = document.createElement("button");
-      b.className = "spread-card";
-      b.innerHTML =
-        '<span class="count">' + s.count + '장</span>' +
-        '<div class="glyphs">' + s.glyphs + '</div>' +
-        '<h3>' + esc(s.name) + '</h3>' +
-        '<div class="tag">' + esc(s.tag) + '</div>' +
-        '<p>' + esc(s.desc) + '</p>';
-      b.addEventListener("click", function () { chooseSpread(key); });
-      grid.appendChild(b);
-    });
-  }
-
-  function chooseSpread(key) {
-    state.key = key;
-    state.spread = SPREADS[key];
-    $("topicTag").textContent = state.spread.tag;
-    $("topicName").textContent = state.spread.name;
-    $("topicDesc").textContent = state.spread.desc;
-    var ul = $("topicPositions");
-    ul.innerHTML = "";
-    state.spread.positions.forEach(function (p, i) {
-      var li = document.createElement("li");
-      li.textContent = (i + 1) + ". " + p.name;
-      ul.appendChild(li);
-    });
-    showScreen("topic");
-  }
-
-  /* ============ 2 → 3 ============ */
-  function startReading() {
-    state.topic = $("topicInput").value.trim();
-    var deck = shuffle(T.buildDeck());
-    state.deck = deck.map(function (c) {
-      return { card: c, orient: Math.random() < 0.3 ? "reversed" : "upright" };
-    });
-    state.picks = [];
-    $("pickTag").textContent = state.spread.tag;
-    $("pickName").textContent = state.spread.name + " · " + state.spread.count + "장";
-    buildSlots();
-    updateProgress();
-    showScreen("pick");
-    runShuffle();
-  }
-
-  function buildSlots() {
-    var row = $("slotRow");
-    row.innerHTML = "";
-    state.spread.positions.forEach(function (p, i) {
-      var d = document.createElement("div");
-      d.className = "slot";
-      d.dataset.i = i;
-      d.innerHTML = '<div class="slot-frame"></div><div class="slot-label">' + (i + 1) + '. ' + esc(p.name) + '</div>';
-      row.appendChild(d);
-    });
-  }
-
-  function runShuffle() {
-    $("fanBox").hidden = true;
-    $("shuffleBox").hidden = false;
-    var stage = $("shuffleStage");
-    $("shuffleNote").textContent = "카드를 섞는 중…";
-    var wait = reduceMotion ? 150 : 1650;
-    if (!reduceMotion) {
-      stage.classList.remove("go");
-      void stage.offsetWidth;
-      stage.classList.add("go");
+  /* ============ 카드·배치 그리기 ============
+   * ctx.mode: "slot"  자리 칸 (ctx.filled 장까지 뒷면, 그다음 칸은 강조)
+   *           "face"  결과 (ctx.picks 의 카드 앞면)
+   */
+  function cardHTML(i, ctx, extra) {
+    var cls = "c" + (extra ? " " + extra : "");
+    var n = '<span class="n" aria-hidden="true">' + (i + 1) + "</span>";
+    if (ctx.mode === "face") {
+      var pick = ctx.picks[i], card = E.getCard(pick.cardId), rev = pick.orientation === "reversed";
+      return '<div class="' + cls + " face reveal" + (rev ? " rev" : "") + '" style="animation-delay:' + (i * 140) + 'ms">' + n +
+        '<img src="' + esc(card.image) + '" alt="' + esc(card.nameKo + " " + orientLabel(pick.orientation)) + '" draggable="false">' +
+        (rev ? '<span class="revtag" aria-hidden="true">역</span>' : "") + "</div>";
     }
-    setTimeout(function () {
-      $("shuffleBox").hidden = true;
-      $("fanBox").hidden = false;
-      renderFan();
-    }, wait);
+    if (i < ctx.filled) return '<div class="' + cls + ' back">' + n + "</div>";
+    return '<div class="' + cls + " slot" + (i === ctx.filled ? " next" : "") + '">' + n + "</div>";
   }
 
-  function renderFan() {
-    var fan = $("fan");
-    fan.innerHTML = "";
-    var n = state.deck.length;
-    for (var i = 0; i < n; i++) {
-      var mid = (n - 1) / 2;
-      var rot = ((i - mid) / mid) * 13;
-      var ty = Math.pow(Math.abs(i - mid) / mid, 2) * 30;
-      var b = document.createElement("button");
-      b.className = "fan-card";
-      b.type = "button";
-      b.style.setProperty("--r", rot.toFixed(2) + "deg");
-      b.style.setProperty("--ty", ty.toFixed(1) + "px");
-      b.setAttribute("aria-label", "카드 선택");
-      b.innerHTML = '<div class="tcard">' + backHTML() + '</div>';
-      if (!reduceMotion) {
-        b.style.animation = "pop .4s ease backwards";
-        b.style.animationDelay = (i * 9) + "ms";
-      }
-      b.addEventListener("click", onPick);
-      fan.appendChild(b);
+  function posHTML(spread, i, ctx) {
+    return '<div class="pos p' + (i + 1) + '">' + cardHTML(i, ctx) + '<div class="lb">' + esc(spread.positions[i].nameKo) + "</div></div>";
+  }
+
+  function layoutHTML(spread, ctx) {
+    var h = "", i;
+    if (spread.layout === "relationship7") {
+      for (i = 0; i < 7; i++) h += posHTML(spread, i, ctx);
+      return '<div class="lay-rel">' + h + "</div>";
     }
-    $("revealBtn").disabled = state.picks.length < state.spread.count;
-    updateFanHint();
-  }
-
-  function onPick(e) {
-    var btn = e.currentTarget;
-    if (btn.classList.contains("taken")) return;
-    if (state.picks.length >= state.spread.count) return;
-    var idx = state.picks.length;
-    state.picks.push(state.deck[idx]);
-    btn.classList.add("taken");
-    btn.removeEventListener("click", onPick);
-
-    var slot = $("slotRow").querySelector('.slot[data-i="' + idx + '"]');
-    slot.classList.add("filled");
-    slot.querySelector(".slot-frame").innerHTML = backHTML();
-
-    updateProgress();
-    updateFanHint();
-
-    if (state.picks.length >= state.spread.count) {
-      $("revealBtn").disabled = false;
-      Array.prototype.forEach.call($("fan").children, function (c) {
-        if (!c.classList.contains("taken")) { c.style.opacity = ".35"; c.style.pointerEvents = "none"; }
-      });
+    if (spread.layout === "celtic10") {
+      [4, 2, 3, 5].forEach(function (k) { h += posHTML(spread, k, ctx); });
+      h += '<div class="pos p1"><div class="stack">' + cardHTML(0, ctx) + cardHTML(1, ctx, "over") + "</div>" +
+        '<div class="lb">' + esc(spread.positions[0].nameKo + " · " + spread.positions[1].nameKo) + "</div></div>";
+      var staff = "";
+      for (i = 6; i < 10; i++) staff += posHTML(spread, i, ctx);
+      return '<div class="lay-celtic"><div class="cross">' + h + '</div><div class="staff">' + staff + "</div></div>";
     }
-  }
-
-  function updateProgress() {
-    $("pickProgress").textContent = state.picks.length + " / " + state.spread.count + " 선택";
-  }
-  function updateFanHint() {
-    var left = state.spread.count - state.picks.length;
-    $("fanHint").textContent = left > 0
-      ? ("마음이 가는 카드를 " + left + "장 더 고르세요.")
-      : "모두 골랐습니다. ‘해석 보기’를 눌러 주세요.";
-  }
-
-  /* ============ 4. 해석 ============ */
-  function orientLabel(o) { return o === "upright" ? "정방향" : "역방향"; }
-
-  function interpretCard(pick, pos) {
-    var meaning = pick.orient === "upright" ? pick.card.up : pick.card.rev;
-    var t = pos.desc + " 이 자리에는 「" + pick.card.name + "」 카드가 " + orientLabel(pick.orient) + "으로 놓였습니다. " + meaning;
-    if (state.topic) {
-      t += pick.orient === "upright"
-        ? " 「" + state.topic + "」에 관해서는, 이 카드가 흐름을 여는 힘으로 작용하니 그 방향을 신뢰해도 좋습니다."
-        : " 「" + state.topic + "」에 관해서는, 이 카드가 먼저 살펴야 할 걸림돌을 가리킵니다. 그 부분을 인정하는 데서 풀립니다.";
-    }
-    return t;
-  }
-
-  function summarize() {
-    var n = state.picks.length;
-    var ups = state.picks.filter(function (p) { return p.orient === "upright"; }).length;
-    var revs = n - ups;
-    var majors = state.picks.filter(function (p) { return p.card.kind === "major"; }).length;
-    var sc = { wands: 0, cups: 0, swords: 0, pentacles: 0 };
-    state.picks.forEach(function (p) { if (p.card.suit && sc[p.card.suit] != null) sc[p.card.suit]++; });
-    var dom = null, max = 0;
-    Object.keys(sc).forEach(function (s) { if (sc[s] > max) { max = sc[s]; dom = s; } });
-
-    var parts = [];
-    parts.push(state.spread.name + " 리딩에서 모두 " + n + "장이 펼쳐졌고, 정방향이 " + ups + "장, 역방향이 " + revs + "장입니다.");
-
-    if (revs > ups) {
-      parts.push("역방향이 우세한 만큼, 지금은 밖으로 밀어붙이기보다 안을 정리하고 속도를 늦춰야 할 시기입니다. 막힌 지점을 인정하는 데서 실마리가 열립니다.");
-    } else if (ups > revs) {
-      parts.push("정방향이 우세해 전반적인 흐름은 순조롭습니다. 방향을 믿고 한 걸음씩 실행하면 원하는 결과에 가까워집니다.");
-    } else {
-      parts.push("정방향과 역방향이 팽팽합니다. 나아갈 부분과 멈춰 살필 부분이 함께 있으니, 서두르지 말고 균형을 잡으세요.");
-    }
-
-    if (n > 1 && majors >= Math.ceil(n / 2)) {
-      parts.push("메이저 아르카나가 절반 이상 나왔습니다. 사소한 선택이 아니라 삶의 큰 방향을 다루는 국면에 서 있습니다.");
-    } else if (dom && max >= 2) {
-      var theme = { wands: "열정과 일, 도전", cups: "감정과 관계, 사랑", swords: "생각과 판단, 갈등과 소통", pentacles: "현실과 물질, 안정" }[dom];
-      parts.push(SUITS[dom].ko + " 카드가 많이 나와, 이번 고민의 무게중심은 ‘" + theme + "’에 있습니다.");
-    }
-
-    var last = state.picks[n - 1];
-    var lastMeaning = last.orient === "upright" ? last.card.up : last.card.rev;
-    parts.push("마지막 「" + state.spread.positions[n - 1].name + "」 자리의 " + last.card.name + "(" + orientLabel(last.orient) + ")는 이 질문의 종착점을 보여줍니다. " + lastMeaning);
-
-    if (state.topic) {
-      parts.push("「" + state.topic + "」에 대한 답으로 이 카드들을 이어 보면, 이미 가진 실마리를 어떻게 다루느냐에 따라 결과가 갈립니다. 카드는 정해진 미래가 아니라 지금의 흐름을 비추는 거울이며, 마지막 선택은 언제나 당신의 몫입니다.");
-    } else {
-      parts.push("카드는 정해진 미래가 아니라 지금의 흐름을 비추는 거울입니다. 마지막 선택은 언제나 당신의 몫입니다.");
-    }
-    return parts;
-  }
-
-  function goReading() {
-    revealTimers.forEach(clearTimeout);
-    revealTimers = [];
-    preloadImages(state.picks);
-    $("readTag").textContent = state.spread.tag;
-    $("readName").textContent = state.spread.name + " 해석";
-    $("readTopic").textContent = state.topic ? ("“" + state.topic + "”") : "";
-    var list = $("readingList");
-    list.innerHTML = "";
-    $("summaryBox").classList.remove("shown");
-    $("summaryText").innerHTML = "";
-
-    state.picks.forEach(function (pick, i) {
-      var pos = state.spread.positions[i];
-      var row = document.createElement("div");
-      row.className = "reading-row";
-      row.innerHTML =
-        '<div class="reading-card"><div class="flip"><div class="flip-inner">' +
-          '<div class="flip-face flip-back">' + backHTML() + '</div>' +
-          '<div class="flip-face flip-front">' + cardFaceHTML(pick) + '</div>' +
-        '</div></div></div>' +
-        '<div class="reading-text">' +
-          '<div class="reading-pos">' + (i + 1) + '. ' + esc(pos.name) + '</div>' +
-          '<div class="reading-meta">' +
-            '<span class="pill ' + pick.orient + '">' + orientLabel(pick.orient) + '</span>' +
-            '<span class="reading-cardname">' + esc(pick.card.name) + '</span>' +
-            '<span class="reading-en">' + esc(pick.card.en) + '</span>' +
-          '</div>' +
-          '<p class="reading-body">' + esc(interpretCard(pick, pos)) + '</p>' +
-        '</div>';
-      list.appendChild(row);
-
-      var flip = row.querySelector(".flip");
-      if (reduceMotion) {
-        row.classList.add("shown"); flip.classList.add("revealed");
+    // row: 순서대로 한 줄. 결과에서는 자리 이름을 위, 카드 이름·방향을 아래에.
+    spread.positions.forEach(function (p, k) {
+      var lb = '<div class="lb">' + (k + 1) + ". " + esc(p.nameKo) + "</div>";
+      if (ctx.mode === "face") {
+        var pick = ctx.picks[k];
+        h += '<div class="pos">' + lb + cardHTML(k, ctx) + '<div class="nm">' + esc(E.getCard(pick.cardId).nameKo) + " (" + orientLabel(pick.orientation) + ")</div></div>";
       } else {
-        var delay = 350 + i * 1150;
-        revealTimers.push(setTimeout(function () {
-          row.classList.add("shown");
-          flip.classList.add("revealed");
-        }, delay));
+        h += '<div class="pos">' + cardHTML(k, ctx) + lb + "</div>";
       }
     });
-
-    var totalDelay = reduceMotion ? 60 : (350 + state.picks.length * 1150 + 500);
-    revealTimers.push(setTimeout(revealSummary, totalDelay));
-    showScreen("reading");
+    return '<div class="lay-row">' + h + "</div>";
   }
 
-  function revealSummary() {
-    var box = $("summaryText");
-    box.innerHTML = "";
-    summarize().forEach(function (p) {
-      var el = document.createElement("p");
-      el.textContent = p;
-      box.appendChild(el);
+  /* ============ 화면 이동 ============ */
+  var SCREENS = { home: renderHome, input: renderInput, pick: renderPick, result: renderResult };
+
+  function go(screen, push) {
+    if (screen !== "home" && !state.spread) screen = "home";
+    if (screen === "result" && state.picks.length < state.spread.cardCount) screen = "pick";
+    state.screen = screen;
+    SCREENS[screen]();
+    homeBtn.hidden = screen === "home";
+    if (push !== false) history.pushState({ screen: screen }, "");
+    window.scrollTo(0, 0);
+    var h = app.querySelector(".title");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  }
+  window.addEventListener("popstate", function (e) { go((e.state && e.state.screen) || "home", false); });
+  homeBtn.addEventListener("click", function () { go("home"); });
+
+  /* ============ S1 홈 ============ */
+  function renderHome() {
+    var list = E.getSpreads();
+    var cards = list.map(function (s, i) {
+      var wide = list.length % 3 === 2 && i >= list.length - 2; // 마지막 줄이 2개면 넓게
+      return '<button type="button" class="menu-card' + (s.featured ? " featured" : "") + (wide ? " wide" : "") + '" data-id="' + esc(s.id) + '">' +
+        '<span class="stars" aria-hidden="true">' + new Array(s.cardCount + 1).join("✦") + "</span>" +
+        '<span class="count">' + s.cardCount + "장</span>" +
+        "<h2>" + esc(s.menuName) + "</h2>" +
+        '<span class="en">(' + esc(s.menuNameEn) + ")</span>" +
+        "<p>" + esc(s.menuDesc) + "</p></button>";
+    }).join("");
+    app.innerHTML = '<section class="home"><h1 class="title">오늘의 타로</h1>' +
+      '<p class="lede">마음속 질문을 하나 떠올리세요. 먼저 카드를 펼칠 방식을 고릅니다.' +
+      "<small>카드를 뽑으면, 사용하는 AI에 붙여 넣어 해석을 받을 수 있는 프롬프트를 만들어 드립니다.</small></p>" +
+      '<div class="menu">' + cards + "</div></section>";
+    app.querySelectorAll(".menu-card").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.spread = E.getSpread(b.dataset.id);
+        state.text = ""; state.picks = [];
+        go("input");
+      });
     });
-    $("summaryBox").classList.add("shown");
   }
 
-  function skipToAll() {
-    revealTimers.forEach(clearTimeout);
-    revealTimers = [];
-    Array.prototype.forEach.call($("readingList").children, function (row) {
-      row.classList.add("shown");
-      row.querySelector(".flip").classList.add("revealed");
+  /* ============ S2 상황 입력 ============ */
+  function renderInput() {
+    var sp = state.spread, max = E.CONFIG.MAX_INPUT_LENGTH;
+    var chips = sp.positions.map(function (p, i) { return '<li class="chip"><b>' + (i + 1) + "</b>" + esc(p.nameKo) + "</li>"; }).join("");
+    app.innerHTML = '<section class="panel"><h1 class="title">' + esc(sp.menuName) + "</h1>" +
+      '<p class="hint">자리 미리보기</p><div class="preview" aria-hidden="true">' + layoutHTML(sp, { mode: "slot", filled: -1 }) + "</div>" +
+      '<ul class="chips" aria-label="카드 자리">' + chips + "</ul>" +
+      '<p class="lead"><label for="topic">지금 당신의 상황이나 고민을 들려주세요 (선택 사항)</label></p>' +
+      '<p class="guide">질문이 구체적일수록 AI가 더 깊이 있는 해석을 해줍니다.<br>‘누구와’, ‘어떤 일로’, ‘무엇이’ 궁금한지 자세히 적어보세요.</p>' +
+      '<div class="field"><textarea id="topic" maxlength="' + max + '" placeholder="' + esc(sp.inputExample || "") + '"></textarea>' +
+      '<span class="counter" id="counter"></span></div>' +
+      '<p class="priv">입력하신 글은 어디에도 저장되지 않으며, 오직 프롬프트 생성에만 사용됩니다.</p>' +
+      '<p class="hint">내용을 적지 않고 바로 펼치셔도 괜찮습니다.</p>' +
+      '<div class="btns"><button type="button" class="btn ghost" id="backBtn">다른 방식 고르기</button>' +
+      '<button type="button" class="btn primary" id="startBtn">카드 펼치기</button></div></section>';
+    var ta = document.getElementById("topic"), counter = document.getElementById("counter");
+    ta.value = state.text; // 글자로만 넣는다
+    function update() { counter.textContent = num(ta.value.length) + " / " + num(max) + "자"; }
+    ta.addEventListener("input", update); update();
+    document.getElementById("backBtn").addEventListener("click", function () { go("home"); });
+    document.getElementById("startBtn").addEventListener("click", function () {
+      state.text = ta.value;
+      shuffle();
+      go("pick");
     });
-    revealSummary();
-    $("summaryBox").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   }
 
-  function reset() {
-    state = { key: null, spread: null, topic: "", deck: [], picks: [] };
-    revealTimers.forEach(clearTimeout); revealTimers = [];
-    $("topicInput").value = "";
-    showScreen("spread");
+  /* ============ S3 카드 선택 ============ */
+  function shuffle() { state.deck = E.createDeck(); state.picks = []; state.taken = []; }
+
+  function renderPick(keepFan) {
+    var sp = state.spread, total = sp.cardCount, done = state.picks.length >= total;
+    var hint = done ? "모두 골랐습니다. ‘결과 보기’를 눌러 주세요."
+      : "빛나는 칸이 다음에 채워질 자리입니다 — " + (state.picks.length + 1) + ". " + sp.positions[state.picks.length].nameKo;
+    if (keepFan) { // 덱은 그대로 두고 윗부분만 갱신
+      app.querySelector("#progress").textContent = state.picks.length + " / " + total + " 선택";
+      app.querySelector("#slots").innerHTML = layoutHTML(sp, { mode: "slot", filled: state.picks.length });
+      app.querySelector("#pickHint").textContent = hint;
+      app.querySelector("#resultBtn").disabled = !done;
+      app.querySelector("#fan").classList.toggle("done", done);
+      return;
+    }
+    var fan = state.deck.map(function (d, i) {
+      var t = (i - (state.deck.length - 1) / 2) / ((state.deck.length - 1) / 2);
+      var taken = state.taken.indexOf(i) >= 0;
+      return '<button type="button" class="fan-card' + (taken ? " taken" : "") + '" data-i="' + i + '" style="--r:' + (t * 7).toFixed(2) + "deg;--i:" + i + '"' +
+        (taken || done ? " disabled" : "") + ' aria-label="' + (i + 1) + '번째 카드 고르기"><span class="c back"></span></button>';
+    }).join("");
+    app.innerHTML = '<section class="panel"><h1 class="title">' + esc(sp.menuName) + "</h1>" +
+      '<p class="sub" id="progress" role="status">' + state.picks.length + " / " + total + " 선택</p>" +
+      '<div class="slots" id="slots">' + layoutHTML(sp, { mode: "slot", filled: state.picks.length }) + "</div>" +
+      '<p class="hint" id="pickHint">' + esc(hint) + "</p>" +
+      '<div class="fanwrap"><div class="fan dealing' + (done ? " done" : "") + '" id="fan">' + fan + "</div></div>" +
+      '<p class="hint">마음이 가는 카드를 고르세요. 화면이 좁으면 카드를 좌우로 밀어 보세요.</p>' +
+      '<div class="btns"><button type="button" class="btn ghost" id="reshuffleBtn">다시 섞기</button>' +
+      '<button type="button" class="btn primary" id="resultBtn"' + (done ? "" : " disabled") + ">결과 보기</button></div></section>";
+    app.querySelector("#fan").addEventListener("click", function (e) {
+      var btn = e.target.closest(".fan-card");
+      if (!btn || btn.disabled || state.picks.length >= total) return;
+      var i = Number(btn.dataset.i), d = state.deck[i];
+      state.taken.push(i);
+      state.picks.push({ positionId: sp.positions[state.picks.length].id, cardId: d.cardId, orientation: d.orientation });
+      btn.classList.add("taken"); btn.disabled = true;
+      if (state.picks.length >= total) {
+        app.querySelectorAll(".fan-card").forEach(function (b) { b.disabled = true; });
+      }
+      renderPick(true);
+      if (state.picks.length >= total) app.querySelector("#resultBtn").focus();
+    });
+    document.getElementById("reshuffleBtn").addEventListener("click", function () { shuffle(); renderPick(); });
+    document.getElementById("resultBtn").addEventListener("click", function () { go("result"); });
   }
 
-  /* ============ 이벤트 ============ */
-  $("startBtn").addEventListener("click", startReading);
-  $("backToSpread").addEventListener("click", function () { showScreen("spread"); });
-  $("reshuffleBtn").addEventListener("click", function () {
-    state.picks = [];
-    buildSlots();
-    updateProgress();
-    $("revealBtn").disabled = true;
-    runShuffle();
-  });
-  $("revealBtn").addEventListener("click", function () {
-    if (state.picks.length >= state.spread.count) goReading();
-  });
-  $("skipBtn").addEventListener("click", skipToAll);
-  $("againBtn").addEventListener("click", reset);
-  $("homeBtn").addEventListener("click", reset);
+  /* ============ S4 결과 ============ */
+  function renderResult() {
+    var sp = state.spread, picks = state.picks, isRow = sp.layout === "row";
+    var prompt = E.buildPrompt({ spreadId: sp.id, userText: state.text, picks: picks });
+    var board = layoutHTML(sp, { mode: "face", picks: picks });
 
-  renderSpreads();
+    var copy = '<div class="g-copy"><p class="lead">아래 프롬프트를 복사해 사용하는 AI에 붙여 넣으면 해석을 받을 수 있어요</p>' +
+      '<div class="copy"><div class="steps">1. 복사 → 2. AI 열기 → 3. 붙여넣기</div>' +
+      '<button type="button" class="btn primary" id="copyBtn">프롬프트 복사</button>' +
+      '<p class="copy-status" id="copyStatus" role="status"></p>' +
+      '<div class="links">' + AI_LINKS.map(function (l) {
+        return '<a href="' + l.url + '" target="_blank" rel="noopener noreferrer">' + l.name + "</a>";
+      }).join(" | ") + "</div>" +
+      '<details class="peek"><summary>프롬프트 미리보기 (' + num(prompt.length) + "자) ▾</summary>" +
+      '<textarea id="promptText" readonly aria-label="복사할 프롬프트"></textarea></details>' +
+      '<p class="notice">입력하신 글이 프롬프트에 포함됩니다. AI의 답변은 사용하는 서비스에 따라 달라질 수 있습니다.</p></div></div>';
+
+    var body;
+    if (isRow) {
+      body = '<div class="result-grid"><div class="g-board">' + board + "</div>" + copy + "</div>";
+    } else {
+      var legend = picks.map(function (p, i) {
+        return '<li><span class="n" aria-hidden="true">' + (i + 1) + '</span><span><span class="p">' + esc(sp.positions[i].nameKo) +
+          '</span><span class="k">' + esc(E.getCard(p.cardId).nameKo) + "<em>" + orientLabel(p.orientation) + "</em></span></span></li>";
+      }).join("");
+      var groups = (sp.groups || []).map(function (g) { return "<li><b>" + esc(g.label) + "</b>" + esc(g.desc) + "</li>"; }).join("");
+      body = '<div class="result-grid has-legend"><div class="g-board"><div class="board">' + board + "</div>" +
+        (groups ? '<ul class="groups" aria-label="함께 읽는 카드">' + groups + "</ul>" : "") + "</div>" +
+        '<ol class="legend g-legend" aria-label="뽑은 카드">' + legend + "</ol>" + copy + "</div>";
+    }
+
+    app.innerHTML = '<section class="panel"><h1 class="title">' + esc(sp.menuName) + "</h1>" + body +
+      '<div class="btns"><button type="button" class="btn ghost" id="againBtn">다시 뽑기</button>' +
+      '<button type="button" class="btn ghost" id="menuBtn">다른 메뉴 보기</button></div></section>';
+
+    var ta = document.getElementById("promptText"), status = document.getElementById("copyStatus");
+    ta.value = prompt.text; // 글자로만 넣는다
+    document.getElementById("copyBtn").addEventListener("click", function () {
+      copyText(prompt.text, ta).then(function (ok) {
+        status.textContent = ok ? "복사됨 — 이제 AI에 붙여 넣으세요."
+          : "자동 복사가 막혀 있습니다. 아래 미리보기를 열어 직접 복사해 주세요.";
+        if (!ok) { app.querySelector(".peek").open = true; ta.focus(); ta.select(); }
+      });
+    });
+    document.getElementById("againBtn").addEventListener("click", function () { shuffle(); go("pick"); });
+    document.getElementById("menuBtn").addEventListener("click", function () { go("home"); });
+  }
+
+  // 클립보드 복사. 최신 방식이 막혀 있으면 예전 방식으로 한 번 더 시도한다.
+  function copyText(text, fallbackEl) {
+    function legacy() {
+      var details = fallbackEl.closest("details"), wasOpen = details.open, ok = false;
+      details.open = true; fallbackEl.focus(); fallbackEl.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      window.getSelection().removeAllRanges(); fallbackEl.blur();
+      details.open = wasOpen;
+      return ok;
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacy(); });
+    }
+    return Promise.resolve(legacy());
+  }
+
+  /* ============ 시작 ============ */
+  history.replaceState({ screen: "home" }, "");
+  E.load().then(function () { go("home", false); }).catch(function (err) {
+    app.innerHTML = '<div class="error"><p>카드 데이터를 불러오지 못했습니다.</p>' +
+      (location.protocol === "file:" ? "<p>파일을 직접 열면 데이터를 읽을 수 없습니다. 폴더에서 <code>python -m http.server</code> 를 실행한 뒤 <code>http://localhost:8000</code> 으로 접속해 주세요.</p>" : "") +
+      '<p class="hint" id="errMsg"></p></div>';
+    document.getElementById("errMsg").textContent = String(err && err.message || err);
+  });
 })();
