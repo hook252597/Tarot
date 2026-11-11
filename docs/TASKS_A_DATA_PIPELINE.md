@@ -54,6 +54,9 @@ A의 일은 한 문장으로 **"뽑은 카드와 사용자 글을 받아, 복사
 | `hasSupportCards` | `false` |
 | `adviceOnRequestOnly` | `false` |
 | `promptTemplateId` | `common-v1` |
+| `layout` | `row` (관계 스프레드 `relationship7`, 켈틱 크로스 `celtic10`) |
+| `groups` | 함께 읽는 카드 묶음의 화면 표시용 설명(없으면 생략) |
+| `inputExample` | 입력 칸 예시 문구 |
 
 - [ ] 기존 스프레드 4종을 같은 형식으로 작성(확정: 메뉴로 제공). 자리별 의미는 기존 `js/data.js` 설명을 옮긴 **초안** — 프롬프트에 그대로 들어가므로 다듬어서 확정
 

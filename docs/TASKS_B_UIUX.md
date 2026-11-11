@@ -6,7 +6,7 @@
 | 기준 문서 | `docs/DEVELOPMENT.md` v0.13 |
 | 담당 폴더 | `css/`, `js/ui/`, `assets/` |
 | 건드리기 전 A에게 알릴 파일 | `index.html`, `js/app.js` |
-| 문서 상태 | 초안 — UI/UX 참고 이미지를 받으면 3·4장을 구체화 |
+| 문서 상태 | 참고 이미지 접수(`assets/ui/s1~s4`). 7장·10장 화면 제안: `docs/UI_DESIGN_SPREADS.md`, 시안 `docs/mockups/spread-layouts.html` |
 
 ## 1. 이 사이트가 하는 일
 

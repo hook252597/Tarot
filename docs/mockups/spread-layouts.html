@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>달빛 아르카나 — 관계 스프레드 · 켈틱 크로스 화면 설계안</title>
+<style>
+/* =========================================================
+   디자인 토큰 — B의 참고 이미지(assets/ui/s1~s4)에서 추출한 값.
+   실제 구현 시 css/tokens.css 로 옮긴다. 색상값은 눈으로 맞춘 근사치.
+   ========================================================= */
+:root{
+  --bg-0:#060714;            /* 가장 어두운 바탕 */
+  --bg-1:#0c0e2a;            /* 남색 바탕 */
+  --nebula-1:rgba(112,84,170,.34);   /* 보랏빛 성운 */
+  --nebula-2:rgba(196,140,96,.20);   /* 주황빛 성운 */
+  --panel:rgba(40,38,60,.74);        /* 반투명 패널 */
+  --panel-border:#d6b676;            /* 패널 금색 테두리 */
+  --gold-hi:#fbe6a2;         /* 금색 밝은 쪽 */
+  --gold:#f0c965;            /* 금색 기본(제목·강조 글자) */
+  --gold-lo:#d99a2b;         /* 금색 어두운 쪽(버튼 그라데이션 끝) */
+  --text:#f5f2ea;            /* 본문 글자 */
+  --text-dim:#a8a5b9;        /* 보조 글자 */
+  --slot:rgba(255,255,255,.10);      /* 빈 자리 칸 */
+  --slot-border:rgba(255,255,255,.38);
+  --violet:#2c2050;          /* 카드 뒷면 바탕 */
+  --radius-panel:16px; --radius-card:8px; --radius-pill:999px;
+  --font:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+  --cw:76px;                 /* 카드 폭. 스프레드·화면 폭에 따라 바뀜 */
+}
+*{box-sizing:border-box}
+body{margin:0;background:#04040c;color:var(--text);font-family:var(--font);line-height:1.5}
+.doc{max-width:1440px;margin:0 auto;padding:32px 24px 80px}
+.doc h1{font-size:26px;margin:0 0 6px;color:var(--gold)}
+.doc h2{font-size:20px;margin:56px 0 4px;color:var(--gold)}
+.doc p.note{margin:0 0 16px;color:var(--text-dim);font-size:14px;max-width:900px}
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0}
+.sw{width:118px;font-size:11px;color:var(--text-dim)}
+.sw i{display:block;height:40px;border-radius:8px;border:1px solid rgba(255,255,255,.18);margin-bottom:4px}
+.pair{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.pair>.col{flex:1 1 640px;min-width:0}
+.pair>.col.m{flex:0 0 380px}
+.cap{font-size:13px;color:var(--text-dim);margin:0 0 8px}
+
+/* ---------- 화면 틀 ---------- */
+.screen{container-type:inline-size;position:relative;overflow:hidden;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(60% 50% at 12% 22%,var(--nebula-1),transparent 70%),
+    radial-gradient(40% 45% at 88% 26%,var(--nebula-2),transparent 70%),
+    radial-gradient(50% 40% at 80% 12%,var(--nebula-1),transparent 70%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-0));}
+.screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 18%,#fff,transparent),
+   radial-gradient(1px 1px at 42% 62%,#fff,transparent),radial-gradient(1px 1px at 86% 70%,#fff,transparent),
+   radial-gradient(1px 1px at 8% 80%,#fff,transparent),radial-gradient(1px 1px at 55% 8%,#fff,transparent);
+  background-size:340px 300px}
+.topbar{position:relative;display:flex;justify-content:space-between;align-items:center;max-width:820px;margin:0 auto;padding:14px 20px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--gold);font-size:17px}
+.moon{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff7dc,#e9cf8e 60%,#b99a55);box-shadow:0 0 14px rgba(246,217,138,.55)}
+.home{color:var(--gold);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.rule{position:relative;height:1px;background:rgba(255,255,255,.10)}
+.stage{position:relative;padding:22px 16px 18px}
+.panel{position:relative;max-width:980px;margin:0 auto;padding:26px 30px 28px;border-radius:var(--radius-panel);
+  background:var(--panel);border:1.5px solid var(--panel-border);
+  box-shadow:0 0 0 1px rgba(214,182,118,.18),0 0 34px rgba(240,201,101,.16);backdrop-filter:blur(8px)}
+.title{margin:0;text-align:center;font-size:34px;font-weight:500;letter-spacing:.02em;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{text-align:center;color:var(--gold);font-size:18px;margin:2px 0 0}
+.lead{text-align:center;color:var(--gold-hi);font-size:16px;margin:14px 0 0}
+.hint{text-align:center;color:var(--text-dim);font-size:13px;margin:6px 0 0}
+.foot{position:relative;text-align:center;color:#77758a;font-size:11.5px;padding:0 12px 14px}
+
+/* ---------- 버튼 ---------- */
+.btns{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:22px}
+.btn{min-width:200px;min-height:56px;padding:0 28px;border-radius:var(--radius-pill);font:inherit;font-size:19px;cursor:pointer}
+.btn.primary{border:0;color:#2a1c05;background:linear-gradient(180deg,var(--gold-hi),var(--gold) 45%,var(--gold-lo));
+  box-shadow:0 0 22px rgba(240,201,101,.45),inset 0 1px 0 rgba(255,255,255,.6)}
+.btn.ghost{color:var(--gold-hi);background:rgba(10,10,24,.35);border:1.5px solid var(--panel-border);outline:1px solid rgba(214,182,118,.45);outline-offset:-6px}
+.btn[disabled]{opacity:.45;cursor:default;box-shadow:none}
+
+/* ---------- 카드 ---------- */
+.c{position:relative;width:var(--cw);aspect-ratio:500/860;border-radius:var(--radius-card);flex:none}
+.c.slot{background:var(--slot);border:1px solid var(--slot-border);box-shadow:inset 0 0 0 5px rgba(255,255,255,.03)}
+.c.slot::after{content:"";position:absolute;inset:16%;border:1px solid rgba(255,255,255,.22);border-radius:5px}
+.c.next{border:1.5px dashed var(--gold);box-shadow:0 0 16px rgba(240,201,101,.55)}
+.c.back{border:1.5px solid var(--panel-border);
+  background:radial-gradient(circle at 50% 50%,rgba(240,201,101,.28) 0 13%,transparent 14%),
+   radial-gradient(circle at 50% 22%,rgba(240,201,101,.22) 0 5%,transparent 6%),
+   radial-gradient(circle at 50% 78%,rgba(240,201,101,.22) 0 5%,transparent 6%),
+   radial-gradient(120% 90% at 50% 50%,#4a3486,var(--violet) 70%)}
+.c.back::after{content:"";position:absolute;inset:7%;border:1px solid rgba(240,201,101,.5);border-radius:5px}
+.c.face{border:1.5px solid var(--panel-border);background:#111;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.c.face img{display:block;width:100%;height:100%;object-fit:cover;border-radius:6px}
+.c.face.rev img{transform:rotate(180deg)}
+.n{position:absolute;z-index:2;top:-9px;left:-9px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#2a1c05;background:linear-gradient(180deg,var(--gold-hi),var(--gold-lo));box-shadow:0 0 0 2px rgba(12,14,42,.9)}
+.revtag{position:absolute;z-index:2;right:3px;bottom:3px;font-size:10px;padding:0 5px;border-radius:999px;background:rgba(12,14,42,.88);color:var(--gold-hi);border:1px solid var(--panel-border)}
+.pos{display:grid;justify-items:center;gap:7px;align-content:start}
+.lb{font-size:12.5px;color:var(--gold-hi);text-align:center;line-height:1.25;max-width:calc(var(--cw) + 34px)}
+
+/* ---------- 배치: 관계 스프레드(7장) ---------- */
+.lay-rel{display:grid;grid-template-columns:repeat(6,calc(var(--cw)/2 + 9px));justify-content:center;row-gap:14px;position:relative}
+.lay-rel .p3{grid-column:3/5;grid-row:1}
+.lay-rel .p1{grid-column:1/3;grid-row:2;transform:translateX(10px)}   /* ④보다 살짝 안쪽 */
+.lay-rel .p2{grid-column:5/7;grid-row:2;transform:translateX(-10px)}  /* ⑤보다 살짝 안쪽 */
+.lay-rel .p4{grid-column:1/3;grid-row:3}
+.lay-rel .p6{grid-column:3/5;grid-row:3}
+.lay-rel .p5{grid-column:5/7;grid-row:3}
+.lay-rel .p7{grid-column:3/5;grid-row:4}
+/* 묶음 안내선: 가운데 세로줄(관계 3→6→7) */
+.lay-rel::before{content:"";position:absolute;left:50%;top:6%;bottom:8%;width:0;border-left:1px dashed rgba(240,201,101,.35)}
+.lay-rel .pos{position:relative}
+
+/* ---------- 배치: 켈틱 크로스(10장) ---------- */
+.lay-celtic{display:flex;justify-content:center;align-items:center;gap:calc(var(--cw)*.55)}
+.cross{display:grid;grid-template-columns:repeat(3,calc(var(--cw) + 30px));row-gap:12px;position:relative}
+.cross .p5{grid-column:2;grid-row:1}.cross .p3{grid-column:1;grid-row:2}.cross .p1{grid-column:2;grid-row:2}
+.cross .p4{grid-column:3;grid-row:2}.cross .p6{grid-column:2;grid-row:3}
+.cross::before{content:"";position:absolute;left:6%;right:6%;top:50%;border-top:1px dashed rgba(240,201,101,.35)}
+.cross::after{content:"";position:absolute;top:5%;bottom:8%;left:50%;border-left:1px dashed rgba(240,201,101,.35)}
+.cross .pos{position:relative;z-index:1}
+.stack{position:relative}
+.stack .c.over{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(90deg);z-index:2;box-shadow:0 0 0 2px rgba(12,14,42,.85),0 4px 14px rgba(0,0,0,.6)}
+.stack .c.over .n{left:auto;right:-9px;transform:rotate(-90deg)}
+.stack .c.over .revtag{transform:rotate(-90deg);right:-4px;bottom:10px}
+.staff{display:flex;flex-direction:column-reverse;gap:10px}
+.staff .pos{grid-template-columns:auto auto;align-items:center;justify-items:start;gap:10px}
+.staff .lb{text-align:left;max-width:92px}
+
+/* ---------- S2: 자리 미리보기 ---------- */
+.preview{--cw:30px;margin:14px auto 0}
+.preview .lb{display:none}
+.preview .n{position:static;box-shadow:none;width:18px;height:18px;font-size:11px;background:none;color:var(--gold-hi);transform:none}
+.preview .c{display:grid;place-items:center}
+.preview .c.slot::after{display:none}
+.preview .lay-rel{row-gap:6px}.preview .lay-rel::before{display:none}
+.preview .cross{row-gap:6px;grid-template-columns:repeat(3,calc(var(--cw) + 10px))}
+.preview .cross::before,.preview .cross::after{display:none}
+.preview .stack .c.over{background:rgba(60,56,90,.95)}
+.preview .stack .c.over .n{transform:rotate(-90deg)}
+.preview .staff{gap:5px}.preview .staff .pos{grid-template-columns:auto}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 8px;margin:14px auto 0;max-width:720px}
+.chip{font-size:13px;color:var(--text);padding:3px 11px;border-radius:999px;border:1px solid rgba(214,182,118,.45);background:rgba(10,10,24,.3)}
+.chip b{color:var(--gold);font-weight:600;margin-right:4px}
+.guide{text-align:center;color:var(--gold);font-weight:700;font-size:16px;margin:10px 0 0}
+.ta{display:block;width:100%;min-height:118px;margin:14px 0 0;padding:14px 16px 30px;border-radius:14px;border:1.5px solid var(--panel-border);
+  background:rgba(255,255,255,.07);color:var(--text-dim);font:inherit;font-size:16px;position:relative}
+.ta small{position:absolute;right:14px;bottom:8px;color:var(--text-dim)}
+.priv{color:var(--text);font-size:13.5px;margin:8px 0 0}
+
+/* ---------- S3: 덱 펼침 ---------- */
+.fanwrap{overflow-x:auto;padding:26px 6px 14px;margin-top:10px}
+.fan{--cw:54px;display:flex;justify-content:center;min-width:max-content;margin:0 auto}
+.fan .c{margin-left:calc(var(--cw) * -.82);transform-origin:50% 320%}
+.fan .c:first-child{margin-left:0}
+.fan .c.taken{opacity:.18}
+
+/* ---------- S4: 결과 ---------- */
+.result{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:28px;align-items:start;margin-top:20px}
+.board{padding:22px 8px 12px;border-radius:14px;background:rgba(8,8,22,.28);border:1px solid rgba(214,182,118,.22)}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.legend li{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:rgba(8,8,22,.28);border:1px solid rgba(255,255,255,.08)}
+.legend .n{position:static;box-shadow:none}
+.legend .p{font-size:12px;color:var(--text-dim);display:block}
+.legend .k{font-size:15px;color:var(--text)}
+.legend .k em{font-style:normal;color:var(--gold);margin-left:4px;font-size:13px}
+.groups{margin:10px 0 0;padding:0;list-style:none;font-size:12.5px;color:var(--text-dim);display:grid;gap:3px}
+.groups b{color:var(--gold-hi);font-weight:600}
+.copy{margin-top:20px;text-align:center}
+.steps{display:inline-block;padding:9px 26px 26px;border-radius:10px 10px 14px 14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);color:var(--gold-hi);font-size:16px}
+.copy .btn.primary{display:block;margin:-22px auto 0;position:relative;min-width:230px}
+.links{margin-top:10px;font-size:17px;color:var(--text-dim)}
+.links a{color:var(--gold-hi);text-underline-offset:3px}
+.peek{margin-top:6px;font-size:13px;color:var(--text-dim);text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- 반응형: 폭이 좁을 때 (실제 구현에서는 @media 로 옮긴다) ---------- */
+@container (max-width:760px){
+  .topbar{padding:10px 14px}.brand{font-size:15px}
+  .stage{padding:12px 8px}.panel{padding:18px 12px 20px}
+  .title{font-size:26px}.sub{font-size:15px}.lead{font-size:14px}.guide{font-size:14px}
+  .result{grid-template-columns:1fr;gap:16px}
+  .lay-celtic{flex-direction:column;gap:16px}
+  .staff{flex-direction:row;gap:8px}
+  .staff .pos{grid-template-columns:auto;justify-items:center;gap:6px}
+  .staff .lb{text-align:center;max-width:76px}
+  .cross{grid-template-columns:repeat(3,calc(var(--cw) + 22px))}
+  .btn{min-width:0;flex:1 1 140px;font-size:16px;min-height:50px;padding:0 14px}
+  .copy .btn.primary{flex:none;min-width:200px}
+  .fan{justify-content:flex-start}
+  .lb{font-size:11.5px}
+}
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>관계 스프레드 · 켈틱 크로스 화면 설계안</h1>
+  <p class="note">동업자가 올린 참고 이미지(<code>assets/ui/s1~s4</code>)의 색·패널·버튼·카드 표현을 그대로 따르고, 참고 이미지에 없는 7장·10장 스프레드의 S2(입력)·S3(카드 선택)·S4(결과) 화면을 같은 패턴으로 설계한 안입니다. 왼쪽은 PC, 오른쪽은 모바일(360px)입니다. 카드 뒷면과 배경은 CSS로 흉내 낸 것이며 실제 이미지는 B의 디자인으로 교체합니다.</p>
+  <div class="swatches" id="sw"></div>
+
+  <h2>1. 관계 스프레드 (7장)</h2>
+  <p class="note">배치: 위 ③ / ①·② / ④·⑥·⑤ / 아래 ⑦. 왼쪽 줄은 나(①④), 오른쪽 줄은 상대(②⑤), 가운데 점선은 관계의 흐름(③→⑥→⑦).</p>
+  <div id="rel"></div>
+
+  <h2>2. 켈틱 크로스 (10장)</h2>
+  <p class="note">배치: 십자 6장 + 오른쪽 세로 4장. ②는 ① 위에 가로로 눕힘. 점선은 가로 흐름(③→①→④)과 세로 흐름(⑥→①→⑤). 모바일에서는 세로 4장(⑦~⑩)을 십자 아래 한 줄로 내립니다.</p>
+  <div id="celtic"></div>
+</div>
+
+<script>
+/* 이 스크립트는 설계안을 그리기 위한 것. 데이터 모양은 data/spreads.json 을 따른다. */
+var IMG="../../cards/";
+var SPREADS={
+  relationship:{name:"관계 스프레드",layout:"rel",cw:{pc:74,m:66},
+    positions:["나","상대","두 사람의 관계","내가 원하는 것","상대가 원하는 것","관계의 과제","관계의 가능성과 흐름"],
+    sample:[["major-09","은둔자",0],["cups-02","컵 2",0],["major-06","연인",0],["major-17","별",0],["pents-08","펜타클 8",1],["swords-03","소드 3",0],["major-19","태양",0]],
+    groups:[["① ↔ ②","나와 상대의 태도 비교"],["④ ↔ ⑤","서로 원하는 방향 비교"],["③ → ⑥ → ⑦","관계·과제·흐름"]],
+    example:"예) 사귄 지 1년 된 사람과 요즘 연락이 줄었습니다. 서로 바라는 게 달라진 건지, 무엇을 풀어야 할지 궁금해요."},
+  celtic:{name:"켈틱 크로스",layout:"celtic",cw:{pc:66,m:60},
+    positions:["현재 상황","장애물","가까운 과거","가까운 미래","내가 바라는 미래","나의 내면","나의 시선","외부의 시선","두려움","최종 결과"],
+    sample:[["wands-10","완드 10",0],["major-16","탑",0],["swords-03","소드 3",1],["major-17","별",0],["major-19","태양",0],["major-02","여사제",0],["major-09","은둔자",1],["major-03","여황제",0],["major-00","바보",1],["cups-02","컵 2",0]],
+    groups:[["③ → ① → ④ → ⑩","이야기의 뼈대"],["⑥ → ① → ⑤","내면이 미치는 영향"],["⑥ + ⑨","내면과 두려움"]],
+    example:"예) 3년 다닌 회사를 그만두고 디자인 일을 새로 시작하려 합니다. 준비는 6개월 했고, 지금 옮겨도 될지와 무엇이 걸림돌인지 궁금해요."}
+};
+
+/* mode: "slot"(S2·S3 자리 칸) | "face"(S4 결과). filled: 채워진 장수(S3) */
+function card(sp,i,mode,filled,extra){
+  var n='<span class="n">'+(i+1)+'</span>',cls="c "+(extra||"");
+  if(mode==="face"){var s=sp.sample[i];
+    return '<div class="'+cls+' face'+(s[2]?" rev":"")+'">'+n+'<img src="'+IMG+s[0]+'.jpg" alt="'+s[1]+(s[2]?" 역방향":" 정방향")+'">'+(s[2]?'<span class="revtag">역</span>':'')+'</div>';}
+  if(i<filled) return '<div class="'+cls+' back">'+n+'</div>';
+  return '<div class="'+cls+' slot'+(i===filled?" next":"")+'">'+n+'</div>';
+}
+function pos(sp,i,mode,filled){return '<div class="pos p'+(i+1)+'">'+card(sp,i,mode,filled)+'<div class="lb">'+sp.positions[i]+'</div></div>';}
+function layout(sp,mode,filled){
+  if(sp.layout==="rel"){var h='<div class="lay-rel">';for(var i=0;i<7;i++)h+=pos(sp,i,mode,filled);return h+'</div>';}
+  var c='<div class="cross">';
+  [4,2,3,5].forEach(function(i){c+=pos(sp,i,mode,filled);});
+  c+='<div class="pos p1"><div class="stack">'+card(sp,0,mode,filled)+card(sp,1,mode,filled,"over")+'</div><div class="lb">'+sp.positions[0]+' · '+sp.positions[1]+'</div></div></div>';
+  var s='<div class="staff">';for(var j=6;j<10;j++)s+=pos(sp,j,mode,filled);
+  return '<div class="lay-celtic">'+c+s+'</div></div>';
+}
+function frame(inner){return '<div class="screen"><div class="topbar"><div class="brand"><span class="moon"></span>달빛 아르카나</div><span class="home">처음으로</span></div><div class="rule"></div><div class="stage"><div class="panel">'+inner+'</div></div><div class="foot">본 서비스는 재미와 성찰을 위한 콘텐츠이며 전문 상담을 대신하지 않습니다.</div></div>';}
+function s2(sp){
+  var chips=sp.positions.map(function(p,i){return '<span class="chip"><b>'+(i+1)+'</b>'+p+'</span>';}).join("");
+  return frame('<h3 class="title">'+sp.name+'</h3><p class="hint">자리 미리보기</p><div class="preview">'+layout(sp,"slot",-1)+'</div><div class="chips">'+chips+'</div>'+
+   '<p class="lead">지금 당신의 상황이나 고민을 들려주세요 (선택 사항)</p><p class="guide">질문이 구체적일수록 AI가 더 깊이 있는 해석을 해줍니다.</p>'+
+   '<div class="ta">'+sp.example+'<small>0 / 2,000자</small></div><p class="priv">입력하신 글은 어디에도 저장되지 않으며, 오직 프롬프트 생성에만 사용됩니다.</p>'+
+   '<p class="hint">내용을 적지 않고 바로 펼치셔도 괜찮습니다.</p><div class="btns"><button class="btn ghost">다른 방식 고르기</button><button class="btn primary">카드 펼치기</button></div>');
+}
+function s3(sp,filled,mobile){
+  var fan="",n=78;for(var i=0;i<n;i++){var t=(i-(n-1)/2)/((n-1)/2);
+    fan+='<div class="c back'+(i%11===3&&i<filled*11?" taken":"")+'" style="transform:rotate('+(t*7).toFixed(2)+'deg)"></div>';}
+  return frame('<h3 class="title">'+sp.name+'</h3><p class="sub">'+filled+' / '+sp.positions.length+' 선택</p>'+
+   '<div style="margin-top:20px">'+layout(sp,"slot",filled)+'</div><p class="hint">빛나는 칸이 다음에 채워질 자리입니다 — '+(filled+1)+'. '+sp.positions[filled]+'</p>'+
+   '<div class="fanwrap"><div class="fan">'+fan+'</div></div>'+(mobile?'<p class="hint">좌우로 밀어 카드를 고르세요</p>':'')+
+   '<div class="btns"><button class="btn ghost">다시 섞기</button><button class="btn primary" disabled>결과 보기</button></div>');
+}
+function s4(sp){
+  var lg=sp.sample.map(function(s,i){return '<li><span class="n">'+(i+1)+'</span><span><span class="p">'+sp.positions[i]+'</span><span class="k">'+s[1]+'<em>'+(s[2]?"역방향":"정방향")+'</em></span></span></li>';}).join("");
+  var gr=sp.groups.map(function(g){return '<li><b>'+g[0]+'</b> '+g[1]+'</li>';}).join("");
+  return frame('<h3 class="title">'+sp.name+'</h3><div class="result"><div><div class="board">'+layout(sp,"face",99)+'</div><ul class="groups">'+gr+'</ul></div><ul class="legend">'+lg+'</ul></div>'+
+   '<p class="lead">아래 프롬프트를 복사해 사용하는 AI에 붙여 넣으면 해석을 받을 수 있어요</p>'+
+   '<div class="copy"><div class="steps">1. 복사 → 2. AI 열기 → 3. 붙여넣기</div><button class="btn primary">프롬프트 복사</button>'+
+   '<div class="links"><a href="https://chatgpt.com" target="_blank" rel="noopener">ChatGPT</a> | <a href="https://gemini.google.com" target="_blank" rel="noopener">Gemini</a></div><div class="peek">프롬프트 미리보기 ▾</div></div>'+
+   '<div class="btns"><button class="btn ghost">다시 뽑기</button><button class="btn ghost">다른 메뉴 보기</button></div>');
+}
+function block(sp,title,pcHtml,mHtml){
+  return '<div class="pair" style="margin-top:22px"><div class="col" style="--cw:'+sp.cw.pc+'px"><p class="cap">'+title+' — PC</p>'+pcHtml+'</div>'+
+         '<div class="col m" style="--cw:'+sp.cw.m+'px"><p class="cap">'+title+' — 모바일 360px</p>'+mHtml+'</div></div>';
+}
+function render(id,key,filled){var sp=SPREADS[key];
+  document.getElementById(id).innerHTML=
+    block(sp,"S2. 상황 입력",s2(sp),s2(sp))+block(sp,"S3. 카드 선택 ("+filled+"장 고른 상태)",s3(sp,filled),s3(sp,filled,true))+block(sp,"S4. 결과",s4(sp),s4(sp));}
+render("rel","relationship",3);render("celtic","celtic",4);
+document.getElementById("sw").innerHTML=[["--bg-1","바탕 남색"],["--bg-0","바탕 어두운 쪽"],["--panel","패널(반투명)"],["--panel-border","패널 테두리"],["--gold-hi","금색 밝음"],["--gold","금색 기본"],["--gold-lo","금색 어두움"],["--text","본문 글자"],["--text-dim","보조 글자"],["--violet","카드 뒷면"]]
+ .map(function(t){return '<div class="sw"><i style="background:var('+t[0]+')"></i>'+t[1]+'<br>'+t[0]+'</div>';}).join("");
+</script>
+</body>
+</html>
